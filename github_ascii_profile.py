@@ -42,14 +42,14 @@ def uptime_string() -> str:
 
 INFO = [
     ("header", f"{USERNAME}@github"),
-    ("OS",                    "Linux (Ubuntu, Mint, Omarchy), Windows 11, Android"),
+    ("OS",                    "Linux, Windows 11, Android"),
     ("Uptime",                uptime_string()),
     ("Host",                  "Ascentium"),
     ("Kernel",                "AI/ML Engineer"),
-    ("Location",              "Coimbatore, India"),
+    ("Location",              "Chennai, India"),
     ("IDE",                   "VSCode, Neovim"),
     ("blank", ""),
-    ("Languages.Programming", "Python, Go, JavaScript, TypeScript"),
+    ("Languages.Programming", "Python, Go"),
     ("Languages.Computer",    "HTML, CSS, JSON, YAML, Bash"),
     ("Languages.Real",        "English, Nepali, Hindi"),
     ("blank", ""),
@@ -71,8 +71,8 @@ INFO = [
 # ============================================================
 MODE        = "braille"  # "braille" = high detail (2x4 dots/char), "ascii" = classic
 COLORIZE    = True   # ANSI colors — GitHub renders them inside ```ansi blocks
-ART_WIDTH   = 50     # characters wide (braille: 40-60, ascii: 40-55 looks best)
-INFO_WIDTH  = 66     # width of the right info panel
+ART_WIDTH   = 42     # characters wide (braille: 40-60, ascii: 40-55 looks best)
+INFO_WIDTH  = 52     # width of the right info panel
 CONTRAST    = 1.6    # 1.0 = normal, higher = punchier
 BRIGHTNESS  = 1.05
 INVERT      = True   # True = dark background (GitHub dark mode style)
@@ -288,21 +288,15 @@ def main():
     info = build_info_panel()
     rows = combine_rows(art, info)
 
-    if COLORIZE:
-        # GitHub can't render ANSI colors in a README code block,
-        # so colors ship as an SVG image embedded in the README.
-        with open("profile.svg", "w", encoding="utf-8") as f:
-            f.write(render_svg(art, info))
-        readme = '<img src="./profile.svg" alt="terminal-style profile card">\n'
-    else:
-        readme = "```text\n" + render_plain(rows) + "\n```\n"
-
+    # README is real text — GitHub renders code blocks without color,
+    # but everyone can see (and copy) the actual characters.
+    readme = "```text\n" + render_plain(rows) + "\n```\n"
     with open("README.md", "w", encoding="utf-8") as f:
         f.write(readme)
 
-    print(render_ansi(rows))
-    print("\n✅ README.md" + (" + profile.svg" if COLORIZE else "")
-          + " generated! Push to a repo named after your username.")
+    # COLORIZE only affects this terminal preview
+    print(render_ansi(rows) if COLORIZE else render_plain(rows))
+    print("\n✅ README.md generated! Push to a repo named after your username.")
 
 
 if __name__ == "__main__":

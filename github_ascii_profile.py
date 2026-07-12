@@ -107,16 +107,17 @@ def paint(text: str, role: str) -> str:
     return f"\033[{code}m{text}\033[0m"
 
 
-def load_photo(path: str) -> Image.Image:
-    """Load, square-crop and tone-adjust the photo."""
+def load_photo(path: str, ratio: float = 1.0) -> Image.Image:
+    """Load, center-crop to the given w:h ratio and tone-adjust the photo."""
     img = Image.open(path).convert("L")
     img = ImageOps.exif_transpose(img)
 
-    # crop to square around the center (like a profile avatar)
     w, h = img.size
-    side = min(w, h)
-    img = img.crop(((w - side) // 2, (h - side) // 2,
-                    (w + side) // 2, (h + side) // 2))
+    cw = min(w, int(h * ratio))
+    ch = min(h, int(cw / ratio))
+    cw = int(ch * ratio)
+    img = img.crop(((w - cw) // 2, (h - ch) // 2,
+                    (w + cw) // 2, (h + ch) // 2))
 
     img = ImageEnhance.Contrast(img).enhance(CONTRAST)
     img = ImageEnhance.Brightness(img).enhance(BRIGHTNESS)
@@ -132,14 +133,15 @@ _BRAILLE_BITS = {(0, 0): 0x01, (0, 1): 0x02, (0, 2): 0x04, (0, 3): 0x40,
                  (1, 0): 0x08, (1, 1): 0x10, (1, 2): 0x20, (1, 3): 0x80}
 
 
-def image_to_braille(path: str) -> list[str]:
-    """Each braille char encodes 2x4 pixels -> 8x the detail of ascii."""
-    img = load_photo(path)
-
-    # 2 px per char horizontally, 4 px vertically; a char is ~2x taller
-    # than wide, so a square pixel grid keeps the photo's proportions.
+def image_to_braille(path: str, rows: int | None = None) -> list[str]:
+    """Each braille char encodes 2x4 pixels -> 8x the detail of ascii.
+    If rows is given, the art is exactly that many lines tall (e.g. to
+    match the info panel height) — the photo crop follows the ratio."""
+    # 2 px per char horizontally, 4 px vertically; braille dots come out
+    # square, so the crop ratio maps 1:1 onto the pixel grid.
     px_w = ART_WIDTH * 2
-    px_h = px_w
+    px_h = rows * 4 if rows else px_w
+    img = load_photo(path, ratio=px_w / px_h)
     img = img.resize((px_w, px_h))
 
     # lit dots should be the BRIGHT parts of the photo on a dark background
@@ -281,11 +283,11 @@ def main():
         print("Usage: python github_ascii_profile.py <photo.jpg>")
         sys.exit(1)
 
+    info = build_info_panel()
     if MODE == "braille":
-        art = image_to_braille(sys.argv[1])
+        art = image_to_braille(sys.argv[1], rows=len(info))
     else:
         art = image_to_ascii(sys.argv[1])
-    info = build_info_panel()
     rows = combine_rows(art, info)
 
     # README is real text — GitHub renders code blocks without color,
